@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"regexp"
 	"sort"
@@ -233,6 +234,34 @@ func (p *parser) parseTerm() (float64, error) {
 
 // parseFactor handles parentheses and unary operators (highest precedence)
 func (p *parser) parseFactor() (float64, error) {
+	left, err := p.parsePower()
+	if err != nil {
+		return 0, err
+	}
+
+	for {
+		p.skipWhitespace()
+		if p.pos >= len(p.expr) {
+			break
+		}
+
+		if p.expr[p.pos] == '^' {
+			p.pos++
+			right, err := p.parseFactor()
+			if err != nil {
+				return 0, err
+			}
+			left = math.Pow(left, right)
+		} else {
+			break
+		}
+	}
+
+	return left, nil
+}
+
+// parsePower handles parentheses and unary operators
+func (p *parser) parsePower() (float64, error) {
 	p.skipWhitespace()
 
 	if p.pos >= len(p.expr) {

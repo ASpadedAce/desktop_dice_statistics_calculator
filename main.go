@@ -27,6 +27,12 @@ func main() {
 
 	// Dice buttons for quick input
 	diceButtonsContainer := container.NewGridWithColumns(5,
+		widget.NewButton("H", func() {
+			diceInputEntry.SetText(diceInputEntry.Text + "H")
+		}),
+		widget.NewButton("dX", func() {
+			diceInputEntry.SetText(diceInputEntry.Text + "dX")
+		}),
 		widget.NewButton("d4", func() {
 			diceInputEntry.SetText(diceInputEntry.Text + "d4")
 		}),
@@ -35,6 +41,9 @@ func main() {
 		}),
 		widget.NewButton("d8", func() {
 			diceInputEntry.SetText(diceInputEntry.Text + "d8")
+		}),
+		widget.NewButton("L", func() {
+			diceInputEntry.SetText(diceInputEntry.Text + "L")
 		}),
 		widget.NewButton("d10", func() {
 			diceInputEntry.SetText(diceInputEntry.Text + "d10")
@@ -47,15 +56,6 @@ func main() {
 		}),
 		widget.NewButton("d100", func() {
 			diceInputEntry.SetText(diceInputEntry.Text + "d100")
-		}),
-		widget.NewButton("dx", func() {
-			diceInputEntry.SetText(diceInputEntry.Text + "dx")
-		}),
-		widget.NewButton("H", func() {
-			diceInputEntry.SetText(diceInputEntry.Text + "H")
-		}),
-		widget.NewButton("L", func() {
-			diceInputEntry.SetText(diceInputEntry.Text + "L")
 		}),
 	)
 
@@ -79,32 +79,29 @@ func main() {
 	rollButton.Importance = widget.HighImportance
 
 	// Calculator-style number buttons
-	numberButtonsContainer := container.NewGridWithColumns(4,
-		widget.NewButton("AC", func() {
-			diceInputEntry.SetText("")
-			outputDisplay.Text = "0"
-			outputDisplay.Refresh()
-		}),
-		widget.NewButton("()", func() {
-			// TODO: Implement parenthesis logic
-		}),
-		widget.NewButton("%", func() {
-			diceInputEntry.SetText(diceInputEntry.Text + "%")
-		}),
-		widget.NewButton("÷", func() {
-			diceInputEntry.SetText(diceInputEntry.Text + "/")
-		}),
+	numberButtonsContainer := container.NewGridWithColumns(5,
 		createCalcButton("7", diceInputEntry),
 		createCalcButton("8", diceInputEntry),
 		createCalcButton("9", diceInputEntry),
-		widget.NewButton("x", func() {
+		widget.NewButton("*", func() {
 			diceInputEntry.SetText(diceInputEntry.Text + "*")
+		}),
+		widget.NewButton("⌫", func() {
+			text := diceInputEntry.Text
+			if len(text) > 0 {
+				diceInputEntry.SetText(text[:len(text)-1])
+			}
 		}),
 		createCalcButton("4", diceInputEntry),
 		createCalcButton("5", diceInputEntry),
 		createCalcButton("6", diceInputEntry),
-		widget.NewButton("-", func() {
-			diceInputEntry.SetText(diceInputEntry.Text + "-")
+		widget.NewButton("/", func() {
+			diceInputEntry.SetText(diceInputEntry.Text + "/")
+		}),
+		widget.NewButton("C", func() {
+			diceInputEntry.SetText("")
+			outputDisplay.Text = "0"
+			outputDisplay.Refresh()
 		}),
 		createCalcButton("1", diceInputEntry),
 		createCalcButton("2", diceInputEntry),
@@ -112,15 +109,18 @@ func main() {
 		widget.NewButton("+", func() {
 			diceInputEntry.SetText(diceInputEntry.Text + "+")
 		}),
-		createCalcButton("0", diceInputEntry),
+		widget.NewButton("📊", func() {
+			// TODO: Implement statistics logic
+		}),
 		widget.NewButton(".", func() {
 			diceInputEntry.SetText(diceInputEntry.Text + ".")
 		}),
-		widget.NewButton("⌫", func() {
-			text := diceInputEntry.Text
-			if len(text) > 0 {
-				diceInputEntry.SetText(text[:len(text)-1])
-			}
+		createCalcButton("0", diceInputEntry),
+		widget.NewButton("^", func() {
+			diceInputEntry.SetText(diceInputEntry.Text + "^")
+		}),
+		widget.NewButton("-", func() {
+			diceInputEntry.SetText(diceInputEntry.Text + "-")
 		}),
 		rollButton,
 	)
