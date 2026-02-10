@@ -25,8 +25,26 @@ func main() {
 	diceInputEntry := widget.NewEntry()
 	diceInputEntry.SetPlaceHolder("e.g., 2d20H, 3d6+5")
 
-	// Dice buttons for quick input
-	diceButtonsContainer := container.NewGridWithColumns(5,
+	// Roll button
+	rollButton := widget.NewButton("ROLL", func() {
+		diceInput := strings.TrimSpace(diceInputEntry.Text)
+		if diceInput == "" {
+			outputDisplay.Text = "Error: Empty input"
+			outputDisplay.Refresh()
+			return
+		}
+
+		result, err := CalculateDice(diceInput)
+		if err != nil {
+			outputDisplay.Text = fmt.Sprintf("Error: %v", err)
+		} else {
+			outputDisplay.Text = strconv.FormatFloat(result, 'g', -1, 64)
+		}
+		outputDisplay.Refresh()
+	})
+	rollButton.Importance = widget.HighImportance
+
+	buttons := []fyne.CanvasObject{
 		widget.NewButton("H", func() {
 			diceInputEntry.SetText(diceInputEntry.Text + "H")
 		}),
@@ -57,29 +75,6 @@ func main() {
 		widget.NewButton("d100", func() {
 			diceInputEntry.SetText(diceInputEntry.Text + "d100")
 		}),
-	)
-
-	// Roll button
-	rollButton := widget.NewButton("ROLL", func() {
-		diceInput := strings.TrimSpace(diceInputEntry.Text)
-		if diceInput == "" {
-			outputDisplay.Text = "Error: Empty input"
-			outputDisplay.Refresh()
-			return
-		}
-
-		result, err := CalculateDice(diceInput)
-		if err != nil {
-			outputDisplay.Text = fmt.Sprintf("Error: %v", err)
-		} else {
-			outputDisplay.Text = strconv.FormatFloat(result, 'g', -1, 64)
-		}
-		outputDisplay.Refresh()
-	})
-	rollButton.Importance = widget.HighImportance
-
-	// Calculator-style number buttons
-	numberButtonsContainer := container.NewGridWithColumns(5,
 		createCalcButton("7", diceInputEntry),
 		createCalcButton("8", diceInputEntry),
 		createCalcButton("9", diceInputEntry),
@@ -123,7 +118,12 @@ func main() {
 			diceInputEntry.SetText(diceInputEntry.Text + "-")
 		}),
 		rollButton,
-	)
+	}
+
+	buttonsContainer := container.New(newAspectRatioLayout(2.0/3.0, 7, 5))
+	for _, button := range buttons {
+		buttonsContainer.Add(button)
+	}
 
 	// Output section
 	outputSection := container.NewVBox(
@@ -140,10 +140,7 @@ func main() {
 		),
 		nil,
 		nil,
-		container.NewVBox(
-			widget.NewCard("Dice Options", "", diceButtonsContainer),
-			widget.NewCard("Calculator", "", numberButtonsContainer),
-		),
+		buttonsContainer,
 	)
 
 	myWindow.SetContent(mainContent)
