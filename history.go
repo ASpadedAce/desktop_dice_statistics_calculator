@@ -3,6 +3,7 @@ package main
 import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
 
@@ -15,9 +16,9 @@ type calculation struct {
 
 type historyItemRenderer struct {
 	item           *historyItem
-	equationLabel  *widget.Label
-	diceRollsLabel *widget.Label
-	resultLabel    *widget.Label
+	equationLabel  *customLabel
+	diceRollsLabel *customLabel
+	resultLabel    *customLabel
 	objects        []fyne.CanvasObject
 }
 
@@ -33,9 +34,9 @@ func (r *historyItemRenderer) ApplyTheme() {
 }
 
 func (r *historyItemRenderer) Refresh() {
-	r.equationLabel.SetText(r.item.calc.equation)
-	r.diceRollsLabel.SetText(r.item.calc.diceRolls)
-	r.resultLabel.SetText(r.item.calc.result)
+	r.equationLabel.Text = r.item.calc.equation
+	r.diceRollsLabel.Text = r.item.calc.diceRolls
+	r.resultLabel.Text = r.item.calc.result
 	r.equationLabel.Refresh()
 	r.diceRollsLabel.Refresh()
 	r.resultLabel.Refresh()
@@ -55,14 +56,9 @@ type historyItem struct {
 
 func (h *historyItem) CreateRenderer() fyne.WidgetRenderer {
 	h.ExtendBaseWidget(h)
-	equationLabel := widget.NewLabel(h.calc.equation)
-	equationLabel.TextStyle.Bold = true
-
-	diceRollsLabel := widget.NewLabel(h.calc.diceRolls)
-	diceRollsLabel.TextStyle.Italic = true
-
-	resultLabel := widget.NewLabel(h.calc.result)
-	resultLabel.Alignment = fyne.TextAlignTrailing
+	equationLabel := newCustomLabel(h.calc.equation, fyne.CurrentApp().Settings().Theme().Size(theme.SizeNameText)*2, fyne.TextStyle{Bold: true}, fyne.TextAlignLeading, theme.ForegroundColor())
+	diceRollsLabel := newCustomLabel(h.calc.diceRolls, fyne.CurrentApp().Settings().Theme().Size(theme.SizeNameText)*1.5, fyne.TextStyle{Italic: true}, fyne.TextAlignLeading, theme.ForegroundColor())
+	resultLabel := newCustomLabel(h.calc.result, fyne.CurrentApp().Settings().Theme().Size(theme.SizeNameText)*2, fyne.TextStyle{}, fyne.TextAlignTrailing, theme.ForegroundColor())
 
 	layout := container.NewBorder(
 		nil,

@@ -8,6 +8,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
 
@@ -19,7 +20,7 @@ func main() {
 	var historyList *widget.List
 
 	// Dice input bar
-	diceInputEntry := widget.NewEntry()
+	diceInputEntry := newCustomEntry(fyne.CurrentApp().Settings().Theme().Size(theme.SizeNameText) * 2)
 	diceInputEntry.SetPlaceHolder("e.g., 2d20H, 3d6+5")
 
 	historyList = widget.NewList(
@@ -34,8 +35,7 @@ func main() {
 		},
 	)
 
-	// Roll button
-	rollButton := widget.NewButton("ROLL", func() {
+	roll := func() {
 		diceInput := strings.TrimSpace(diceInputEntry.Text)
 		if diceInput == "" {
 			return
@@ -59,47 +59,53 @@ func main() {
 			historyList.Refresh()
 			diceInputEntry.SetText("")
 		}
-	})
-	rollButton.Importance = widget.HighImportance
+	}
+
+	// Roll button
+	rollButton := newCustomButton2WithImportance("ROLL", widget.HighImportance, roll)
+
+	diceInputEntry.OnSubmitted = func(s string) {
+		roll()
+	}
 
 	buttons := []fyne.CanvasObject{
-		widget.NewButton("H", func() {
+		newCustomButton2("H", func() {
 			diceInputEntry.SetText(diceInputEntry.Text + "H")
 		}),
-		widget.NewButton("dX", func() {
+		newCustomButton2("dX", func() {
 			diceInputEntry.SetText(diceInputEntry.Text + "dX")
 		}),
-		widget.NewButton("d4", func() {
+		newCustomButton2("d4", func() {
 			diceInputEntry.SetText(diceInputEntry.Text + "d4")
 		}),
-		widget.NewButton("d6", func() {
+		newCustomButton2("d6", func() {
 			diceInputEntry.SetText(diceInputEntry.Text + "d6")
 		}),
-		widget.NewButton("d8", func() {
+		newCustomButton2("d8", func() {
 			diceInputEntry.SetText(diceInputEntry.Text + "d8")
 		}),
-		widget.NewButton("L", func() {
+		newCustomButton2("L", func() {
 			diceInputEntry.SetText(diceInputEntry.Text + "L")
 		}),
-		widget.NewButton("d10", func() {
+		newCustomButton2("d10", func() {
 			diceInputEntry.SetText(diceInputEntry.Text + "d10")
 		}),
-		widget.NewButton("d12", func() {
+		newCustomButton2("d12", func() {
 			diceInputEntry.SetText(diceInputEntry.Text + "d12")
 		}),
-		widget.NewButton("d20", func() {
+		newCustomButton2("d20", func() {
 			diceInputEntry.SetText(diceInputEntry.Text + "d20")
 		}),
-		widget.NewButton("d100", func() {
+		newCustomButton2("d100", func() {
 			diceInputEntry.SetText(diceInputEntry.Text + "d100")
 		}),
 		createCalcButton("7", diceInputEntry),
 		createCalcButton("8", diceInputEntry),
 		createCalcButton("9", diceInputEntry),
-		widget.NewButton("*", func() {
+		newCustomButton2("*", func() {
 			diceInputEntry.SetText(diceInputEntry.Text + "*")
 		}),
-		widget.NewButton("⌫", func() {
+		newCustomButton2("⌫", func() {
 			text := diceInputEntry.Text
 			if len(text) > 0 {
 				diceInputEntry.SetText(text[:len(text)-1])
@@ -108,29 +114,29 @@ func main() {
 		createCalcButton("4", diceInputEntry),
 		createCalcButton("5", diceInputEntry),
 		createCalcButton("6", diceInputEntry),
-		widget.NewButton("/", func() {
+		newCustomButton2("/", func() {
 			diceInputEntry.SetText(diceInputEntry.Text + "/")
 		}),
-		widget.NewButton("C", func() {
+		newCustomButton2("C", func() {
 			diceInputEntry.SetText("")
 		}),
 		createCalcButton("1", diceInputEntry),
 		createCalcButton("2", diceInputEntry),
 		createCalcButton("3", diceInputEntry),
-		widget.NewButton("+", func() {
+		newCustomButton2("+", func() {
 			diceInputEntry.SetText(diceInputEntry.Text + "+")
 		}),
-		widget.NewButton("📊", func() {
+		newCustomButton2("📊", func() {
 			// TODO: Implement statistics logic
 		}),
-		widget.NewButton(".", func() {
+		newCustomButton2(".", func() {
 			diceInputEntry.SetText(diceInputEntry.Text + ".")
 		}),
 		createCalcButton("0", diceInputEntry),
-		widget.NewButton("^", func() {
+		newCustomButton2("^", func() {
 			diceInputEntry.SetText(diceInputEntry.Text + "^")
 		}),
-		widget.NewButton("-", func() {
+		newCustomButton2("-", func() {
 			diceInputEntry.SetText(diceInputEntry.Text + "-")
 		}),
 		rollButton,
@@ -157,8 +163,8 @@ func main() {
 	myWindow.ShowAndRun()
 }
 
-func createCalcButton(label string, entry *widget.Entry) *widget.Button {
-	return widget.NewButton(label, func() {
+func createCalcButton(label string, entry *customEntry) *customButton2 {
+	return newCustomButton2(label, func() {
 		entry.SetText(entry.Text + label)
 	})
 }
