@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math"
 	"math/rand"
 	"regexp"
 	"sort"
@@ -18,7 +17,7 @@ func init() {
 
 // CalculateDice parses a dice expression and returns the result
 // Supports formats like: 2d20, 3d6+5, 2d20H, 2d20L, 1d20+2d6, etc.
-func CalculateDice(expression string) (int, error) {
+func CalculateDice(expression string) (float64, error) {
 	expression = strings.TrimSpace(expression)
 	if expression == "" {
 		return 0, fmt.Errorf("empty expression")
@@ -92,31 +91,31 @@ func expandDiceNotation(expression string) (string, error) {
 		rolls := rollDiceSet(count, sides)
 
 		// Apply modifier (H for highest, L for lowest)
-		var value int
+		var value float64
 		if modifier == "H" {
 			if count == 1 {
-				value = rolls[0]
+				value = float64(rolls[0])
 			} else {
 				sort.Ints(rolls)
-				value = rolls[len(rolls)-1] // Highest
+				value = float64(rolls[len(rolls)-1]) // Highest
 			}
 		} else if modifier == "L" {
 			if count == 1 {
-				value = rolls[0]
+				value = float64(rolls[0])
 			} else {
 				sort.Ints(rolls)
-				value = rolls[0] // Lowest
+				value = float64(rolls[0]) // Lowest
 			}
 		} else {
 			// Sum all rolls
 			value = 0
 			for _, roll := range rolls {
-				value += roll
+				value += float64(roll)
 			}
 		}
 
 		// Replace the dice notation with its value in the result string
-		result = result[:start] + strconv.Itoa(value) + result[end:]
+		result = result[:start] + strconv.FormatFloat(value, 'f', -1, 64) + result[end:]
 	}
 
 	return result, nil
@@ -133,7 +132,7 @@ func rollDiceSet(count int, sides int) []int {
 
 // evaluateMathExpression evaluates a mathematical expression with +, -, *, /, and parentheses
 // Uses a recursive descent parser to handle operator precedence
-func evaluateMathExpression(expr string) (int, error) {
+func evaluateMathExpression(expr string) (float64, error) {
 	expr = strings.TrimSpace(expr)
 	if expr == "" {
 		return 0, fmt.Errorf("empty expression")
@@ -160,7 +159,7 @@ type parser struct {
 }
 
 // parseExpression handles addition and subtraction (lowest precedence)
-func (p *parser) parseExpression() (int, error) {
+func (p *parser) parseExpression() (float64, error) {
 	left, err := p.parseTerm()
 	if err != nil {
 		return 0, err
@@ -195,7 +194,7 @@ func (p *parser) parseExpression() (int, error) {
 }
 
 // parseTerm handles multiplication and division (higher precedence)
-func (p *parser) parseTerm() (int, error) {
+func (p *parser) parseTerm() (float64, error) {
 	left, err := p.parseFactor()
 	if err != nil {
 		return 0, err
@@ -223,7 +222,7 @@ func (p *parser) parseTerm() (int, error) {
 			if right == 0 {
 				return 0, fmt.Errorf("division by zero")
 			}
-			left = int(math.Floor(float64(left) / float64(right)))
+			left = left / right
 		} else {
 			break
 		}
@@ -233,7 +232,7 @@ func (p *parser) parseTerm() (int, error) {
 }
 
 // parseFactor handles parentheses and unary operators (highest precedence)
-func (p *parser) parseFactor() (int, error) {
+func (p *parser) parseFactor() (float64, error) {
 	p.skipWhitespace()
 
 	if p.pos >= len(p.expr) {
@@ -269,12 +268,12 @@ func (p *parser) parseFactor() (int, error) {
 	return p.parseNumber()
 }
 
-// parseNumber parses an integer from the expression
-func (p *parser) parseNumber() (int, error) {
+// parseNumber parses a number (integer or float) from the expression
+func (p *parser) parseNumber() (float64, error) {
 	p.skipWhitespace()
 	start := p.pos
 
-	for p.pos < len(p.expr) && isDigit(p.expr[p.pos]) {
+	for p.pos < len(p.expr) && (isDigit(p.expr[p.pos]) || p.expr[p.pos] == '.') {
 		p.pos++
 	}
 
@@ -286,7 +285,7 @@ func (p *parser) parseNumber() (int, error) {
 	}
 
 	numStr := p.expr[start:p.pos]
-	num, err := strconv.Atoi(numStr)
+	num, err := strconv.ParseFloat(numStr, 64)
 	if err != nil {
 		return 0, fmt.Errorf("invalid number: %s", numStr)
 	}

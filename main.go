@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"image/color"
+	"strconv"
 	"strings"
 
 	"fyne.io/fyne/v2"
@@ -71,7 +72,7 @@ func main() {
 		if err != nil {
 			outputDisplay.Text = fmt.Sprintf("Error: %v", err)
 		} else {
-			outputDisplay.Text = fmt.Sprintf("%d", result)
+			outputDisplay.Text = strconv.FormatFloat(result, 'g', -1, 64)
 		}
 		outputDisplay.Refresh()
 	})
