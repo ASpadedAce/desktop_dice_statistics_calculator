@@ -25,41 +25,37 @@ func main() {
 	diceInputEntry.SetPlaceHolder("e.g., 2d20H, 3d6+5")
 
 	// Dice buttons for quick input
-	diceButtonsContainer := container.NewVBox(
-		container.NewHBox(
-			widget.NewButton("d4", func() {
-				diceInputEntry.SetText(diceInputEntry.Text + "d4")
-			}),
-			widget.NewButton("d6", func() {
-				diceInputEntry.SetText(diceInputEntry.Text + "d6")
-			}),
-			widget.NewButton("d8", func() {
-				diceInputEntry.SetText(diceInputEntry.Text + "d8")
-			}),
-			widget.NewButton("d10", func() {
-				diceInputEntry.SetText(diceInputEntry.Text + "d10")
-			}),
-			widget.NewButton("d12", func() {
-				diceInputEntry.SetText(diceInputEntry.Text + "d12")
-			}),
-		),
-		container.NewHBox(
-			widget.NewButton("d20", func() {
-				diceInputEntry.SetText(diceInputEntry.Text + "d20")
-			}),
-			widget.NewButton("d100", func() {
-				diceInputEntry.SetText(diceInputEntry.Text + "d100")
-			}),
-			widget.NewButton("dx", func() {
-				diceInputEntry.SetText(diceInputEntry.Text + "dx")
-			}),
-			widget.NewButton("H", func() {
-				diceInputEntry.SetText(diceInputEntry.Text + "H")
-			}),
-			widget.NewButton("L", func() {
-				diceInputEntry.SetText(diceInputEntry.Text + "L")
-			}),
-		),
+	diceButtonsContainer := container.NewGridWithColumns(5,
+		widget.NewButton("d4", func() {
+			diceInputEntry.SetText(diceInputEntry.Text + "d4")
+		}),
+		widget.NewButton("d6", func() {
+			diceInputEntry.SetText(diceInputEntry.Text + "d6")
+		}),
+		widget.NewButton("d8", func() {
+			diceInputEntry.SetText(diceInputEntry.Text + "d8")
+		}),
+		widget.NewButton("d10", func() {
+			diceInputEntry.SetText(diceInputEntry.Text + "d10")
+		}),
+		widget.NewButton("d12", func() {
+			diceInputEntry.SetText(diceInputEntry.Text + "d12")
+		}),
+		widget.NewButton("d20", func() {
+			diceInputEntry.SetText(diceInputEntry.Text + "d20")
+		}),
+		widget.NewButton("d100", func() {
+			diceInputEntry.SetText(diceInputEntry.Text + "d100")
+		}),
+		widget.NewButton("dx", func() {
+			diceInputEntry.SetText(diceInputEntry.Text + "dx")
+		}),
+		widget.NewButton("H", func() {
+			diceInputEntry.SetText(diceInputEntry.Text + "H")
+		}),
+		widget.NewButton("L", func() {
+			diceInputEntry.SetText(diceInputEntry.Text + "L")
+		}),
 	)
 
 	// Roll button
@@ -81,58 +77,51 @@ func main() {
 	})
 	rollButton.Importance = widget.HighImportance
 
-	// Clear button
-	clearButton := widget.NewButton("CLEAR", func() {
-		diceInputEntry.SetText("")
-		outputDisplay.Text = "0"
-		outputDisplay.Refresh()
-	})
-
 	// Calculator-style number buttons
-	numberButtonsContainer := container.NewVBox(
-		container.NewHBox(
-			createCalcButton("7", diceInputEntry),
-			createCalcButton("8", diceInputEntry),
-			createCalcButton("9", diceInputEntry),
-			widget.NewButton("+", func() {
-				diceInputEntry.SetText(diceInputEntry.Text + "+")
-			}),
-			widget.NewButton("-", func() {
-				diceInputEntry.SetText(diceInputEntry.Text + "-")
-			}),
-		),
-		container.NewHBox(
-			createCalcButton("4", diceInputEntry),
-			createCalcButton("5", diceInputEntry),
-			createCalcButton("6", diceInputEntry),
-			widget.NewButton("*", func() {
-				diceInputEntry.SetText(diceInputEntry.Text + "*")
-			}),
-			widget.NewButton("/", func() {
-				diceInputEntry.SetText(diceInputEntry.Text + "/")
-			}),
-		),
-		container.NewHBox(
-			createCalcButton("1", diceInputEntry),
-			createCalcButton("2", diceInputEntry),
-			createCalcButton("3", diceInputEntry),
-			clearButton,
-			widget.NewButton("Backspace", func() {
-				text := diceInputEntry.Text
-				if len(text) > 0 {
-					diceInputEntry.SetText(text[:len(text)-1])
-				}
-			}),
-		),
-		container.NewHBox(
-			createCalcButton("0", diceInputEntry),
-			widget.NewButton(".", func() {
-				diceInputEntry.SetText(diceInputEntry.Text + ".")
-			}),
-			widget.NewLabel(""),
-			widget.NewLabel(""),
-			widget.NewLabel(""),
-		),
+	numberButtonsContainer := container.NewGridWithColumns(4,
+		widget.NewButton("AC", func() {
+			diceInputEntry.SetText("")
+			outputDisplay.Text = "0"
+			outputDisplay.Refresh()
+		}),
+		widget.NewButton("()", func() {
+			// TODO: Implement parenthesis logic
+		}),
+		widget.NewButton("%", func() {
+			diceInputEntry.SetText(diceInputEntry.Text + "%")
+		}),
+		widget.NewButton("÷", func() {
+			diceInputEntry.SetText(diceInputEntry.Text + "/")
+		}),
+		createCalcButton("7", diceInputEntry),
+		createCalcButton("8", diceInputEntry),
+		createCalcButton("9", diceInputEntry),
+		widget.NewButton("x", func() {
+			diceInputEntry.SetText(diceInputEntry.Text + "*")
+		}),
+		createCalcButton("4", diceInputEntry),
+		createCalcButton("5", diceInputEntry),
+		createCalcButton("6", diceInputEntry),
+		widget.NewButton("-", func() {
+			diceInputEntry.SetText(diceInputEntry.Text + "-")
+		}),
+		createCalcButton("1", diceInputEntry),
+		createCalcButton("2", diceInputEntry),
+		createCalcButton("3", diceInputEntry),
+		widget.NewButton("+", func() {
+			diceInputEntry.SetText(diceInputEntry.Text + "+")
+		}),
+		createCalcButton("0", diceInputEntry),
+		widget.NewButton(".", func() {
+			diceInputEntry.SetText(diceInputEntry.Text + ".")
+		}),
+		widget.NewButton("⌫", func() {
+			text := diceInputEntry.Text
+			if len(text) > 0 {
+				diceInputEntry.SetText(text[:len(text)-1])
+			}
+		}),
+		rollButton,
 	)
 
 	// Output section
@@ -142,17 +131,21 @@ func main() {
 	)
 
 	// Main layout: output at top, dice bar below, calculator buttons below that
-	mainContent := container.NewVBox(
+	mainContent := container.NewBorder(
 		outputSection,
-		widget.NewCard("Dice Options", "", diceButtonsContainer),
-		widget.NewCard("Calculator", "", numberButtonsContainer),
-		widget.NewLabel("Dice Expression:"),
-		diceInputEntry,
-		rollButton,
+		container.NewVBox(
+			widget.NewLabel("Dice Expression:"),
+			diceInputEntry,
+		),
+		nil,
+		nil,
+		container.NewVBox(
+			widget.NewCard("Dice Options", "", diceButtonsContainer),
+			widget.NewCard("Calculator", "", numberButtonsContainer),
+		),
 	)
 
-	scrollContainer := container.NewScroll(mainContent)
-	myWindow.SetContent(scrollContainer)
+	myWindow.SetContent(mainContent)
 	myWindow.Resize(fyne.NewSize(400, 600))
 	myWindow.ShowAndRun()
 }
