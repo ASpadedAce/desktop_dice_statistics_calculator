@@ -120,7 +120,7 @@ func main() {
 		rollButton,
 	}
 
-	buttonsContainer := container.New(newAspectRatioLayout(2.0/3.0, 7, 5))
+	buttonsContainer := container.New(newAspectRatioLayout(3.0/2.0, 7, 5))
 	for _, button := range buttons {
 		buttonsContainer.Add(button)
 	}
