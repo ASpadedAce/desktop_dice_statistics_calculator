@@ -55,7 +55,7 @@ func main() {
 				diceRolls: diceRolls,
 				result:    fmt.Sprintf("= %s", strconv.FormatFloat(result, 'g', -1, 64)),
 			}
-			calculations = append(calculations, c)
+			calculations = append([]*calculation{c}, calculations...)
 			historyList.Refresh()
 			diceInputEntry.SetText("")
 		}
