@@ -2,13 +2,11 @@ package main
 
 import (
 	"fmt"
-	"image/color"
 	"strconv"
 	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 )
@@ -17,30 +15,50 @@ func main() {
 	myApp := app.New()
 	myWindow := myApp.NewWindow("Dice Statistics Calculator")
 
-	// Output display
-	outputDisplay := canvas.NewText("0", color.White)
-	outputDisplay.TextSize = 32
+	var calculations []*calculation
+	var historyList *widget.List
 
 	// Dice input bar
 	diceInputEntry := widget.NewEntry()
 	diceInputEntry.SetPlaceHolder("e.g., 2d20H, 3d6+5")
 
+	historyList = widget.NewList(
+		func() int {
+			return len(calculations)
+		},
+		func() fyne.CanvasObject {
+			return newHistoryItem(&calculation{})
+		},
+		func(i widget.ListItemID, o fyne.CanvasObject) {
+			o.(*historyItem).SetCalculation(calculations[i])
+		},
+	)
+
 	// Roll button
 	rollButton := widget.NewButton("ROLL", func() {
 		diceInput := strings.TrimSpace(diceInputEntry.Text)
 		if diceInput == "" {
-			outputDisplay.Text = "Error: Empty input"
-			outputDisplay.Refresh()
 			return
 		}
 
-		result, err := CalculateDice(diceInput)
+		result, diceRolls, err := CalculateDice(diceInput)
 		if err != nil {
-			outputDisplay.Text = fmt.Sprintf("Error: %v", err)
+			// TODO: show error to user
 		} else {
-			outputDisplay.Text = strconv.FormatFloat(result, 'g', -1, 64)
+			id := 0
+			if len(calculations) > 0 {
+				id = calculations[len(calculations)-1].id + 1
+			}
+			c := &calculation{
+				id:        id,
+				equation:  diceInput,
+				diceRolls: diceRolls,
+				result:    fmt.Sprintf("= %s", strconv.FormatFloat(result, 'g', -1, 64)),
+			}
+			calculations = append(calculations, c)
+			historyList.Refresh()
+			diceInputEntry.SetText("")
 		}
-		outputDisplay.Refresh()
 	})
 	rollButton.Importance = widget.HighImportance
 
@@ -95,8 +113,6 @@ func main() {
 		}),
 		widget.NewButton("C", func() {
 			diceInputEntry.SetText("")
-			outputDisplay.Text = "0"
-			outputDisplay.Refresh()
 		}),
 		createCalcButton("1", diceInputEntry),
 		createCalcButton("2", diceInputEntry),
@@ -125,25 +141,18 @@ func main() {
 		buttonsContainer.Add(button)
 	}
 
-	// Output section
-	outputSection := container.NewVBox(
-		widget.NewLabel("Result:"),
-		outputDisplay,
-	)
-
-	// Main layout: output at top, dice bar below, calculator buttons below that
-	mainContent := container.NewBorder(
-		outputSection,
-		container.NewVBox(
-			widget.NewLabel("Dice Expression:"),
-			diceInputEntry,
-		),
+	topContent := container.NewBorder(
+		diceInputEntry,
 		nil,
 		nil,
-		buttonsContainer,
+		nil,
+		historyList,
 	)
 
-	myWindow.SetContent(mainContent)
+	split := container.NewVSplit(topContent, buttonsContainer)
+	split.Offset = 0.5 // Start with a 50/50 split
+
+	myWindow.SetContent(split)
 	myWindow.Resize(fyne.NewSize(400, 600))
 	myWindow.ShowAndRun()
 }

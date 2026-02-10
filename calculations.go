@@ -18,30 +18,31 @@ func init() {
 
 // CalculateDice parses a dice expression and returns the result
 // Supports formats like: 2d20, 3d6+5, 2d20H, 2d20L, 1d20+2d6, etc.
-func CalculateDice(expression string) (float64, error) {
+func CalculateDice(expression string) (float64, string, error) {
 	expression = strings.TrimSpace(expression)
 	if expression == "" {
-		return 0, fmt.Errorf("empty expression")
+		return 0, "", fmt.Errorf("empty expression")
 	}
 
 	// Expand all dice notations to their rolled values
-	expanded, err := expandDiceNotation(expression)
+	expanded, diceRolls, err := expandDiceNotation(expression)
 	if err != nil {
-		return 0, err
+		return 0, "", err
 	}
 
 	// Evaluate the resulting mathematical expression
 	result, err := evaluateMathExpression(expanded)
 	if err != nil {
-		return 0, err
+		return 0, "", err
 	}
 
-	return result, nil
+	return result, diceRolls, nil
 }
 
 // expandDiceNotation finds all dice notation in the expression and replaces them with rolled values
-func expandDiceNotation(expression string) (string, error) {
+func expandDiceNotation(expression string) (string, string, error) {
 	result := expression
+	diceRollsStr := expression
 
 	// Pattern to match dice notation: [count]d[sides][H|L]
 	// Examples: d20, 2d6, 3d6H, 4d8L, dx (where x is placeholder)
@@ -73,23 +74,27 @@ func expandDiceNotation(expression string) (string, error) {
 			var err error
 			count, err = strconv.Atoi(countStr)
 			if err != nil || count <= 0 {
-				return "", fmt.Errorf("invalid dice count: %s", countStr)
+				return "", "", fmt.Errorf("invalid dice count: %s", countStr)
 			}
 		}
 
 		// Determine sides
 		var sides int
 		if sidesStr == "x" {
-			return "", fmt.Errorf("dx requires a number (e.g., d20). Please use a specific die like d20 or d100")
+			return "", "", fmt.Errorf("dx requires a number (e.g., d20). Please use a specific die like d20 or d100")
 		}
 		var err error
 		sides, err = strconv.Atoi(sidesStr)
 		if err != nil || sides <= 0 {
-			return "", fmt.Errorf("invalid dice sides: %s", sidesStr)
+			return "", "", fmt.Errorf("invalid dice sides: %s", sidesStr)
 		}
 
 		// Roll the dice
 		rolls := rollDiceSet(count, sides)
+		var rollsStr []string
+		for _, r := range rolls {
+			rollsStr = append(rollsStr, strconv.Itoa(r))
+		}
 
 		// Apply modifier (H for highest, L for lowest)
 		var value float64
@@ -117,9 +122,10 @@ func expandDiceNotation(expression string) (string, error) {
 
 		// Replace the dice notation with its value in the result string
 		result = result[:start] + strconv.FormatFloat(value, 'f', -1, 64) + result[end:]
+		diceRollsStr = diceRollsStr[:start] + fmt.Sprintf("(%dd%d: %s)", count, sides, strings.Join(rollsStr, ", ")) + diceRollsStr[end:]
 	}
 
-	return result, nil
+	return result, diceRollsStr, nil
 }
 
 // rollDiceSet rolls count dice with the given number of sides
