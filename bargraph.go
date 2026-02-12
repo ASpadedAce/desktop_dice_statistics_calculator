@@ -41,7 +41,7 @@ func (r *barGraphCanvasRenderer) Layout(size fyne.Size) {
 }
 
 func (r *barGraphCanvasRenderer) MinSize() fyne.Size {
-	return fyne.NewSize(800, 500)
+	return fyne.NewSize(900, 550)
 }
 
 func (r *barGraphCanvasRenderer) Refresh() {
@@ -62,18 +62,18 @@ func (r *barGraphCanvasRenderer) Refresh() {
 	}
 
 	// Padding
-	topPadding := float32(40)
+	topPadding := float32(75)
 	bottomPadding := float32(80)
 	leftPadding := float32(100)
 	rightPadding := float32(20)
 
-	graphWidth := float32(800) - leftPadding - rightPadding
-	graphHeight := float32(500) - topPadding - bottomPadding
+	graphWidth := float32(900) - leftPadding - rightPadding
+	graphHeight := float32(550) - topPadding - bottomPadding
 
 	// Background
 	background := canvas.NewRectangle(color.NRGBA{R: 20, G: 20, B: 20, A: 255})
 	background.Move(fyne.NewPos(0, 0))
-	background.Resize(fyne.NewSize(800, 500))
+	background.Resize(fyne.NewSize(900, 550))
 	r.objects = append(r.objects, background)
 
 	// Y-axis
@@ -91,15 +91,27 @@ func (r *barGraphCanvasRenderer) Refresh() {
 	r.objects = append(r.objects, xAxisLine)
 
 	// Title
-	title := canvas.NewText(fmt.Sprintf("Probability Distribution: %d to %d (%d total outcomes)", stats.MinValue, stats.MaxValue, stats.Total), color.White)
+	title := canvas.NewText("Probability Distribution", color.White)
 	title.TextSize = 16
-	title.Move(fyne.NewPos(leftPadding, 10))
+	title.Move(fyne.NewPos(leftPadding, 5))
 	r.objects = append(r.objects, title)
+
+	// Statistics info line 1
+	statsLine1 := canvas.NewText(fmt.Sprintf("Range: %d to %d  |  Total Outcomes: %d", stats.MinValue, stats.MaxValue, stats.Total), color.White)
+	statsLine1.TextSize = 11
+	statsLine1.Move(fyne.NewPos(leftPadding, 22))
+	r.objects = append(r.objects, statsLine1)
+
+	// Statistics info line 2
+	statsLine2 := canvas.NewText(fmt.Sprintf("Average: %.2f  |  Most Common: %d", stats.Average, stats.MostCommon), color.White)
+	statsLine2.TextSize = 11
+	statsLine2.Move(fyne.NewPos(leftPadding, 36))
+	r.objects = append(r.objects, statsLine2)
 
 	// Y-axis label
 	yLabel := canvas.NewText("Probability (%)", color.White)
 	yLabel.TextSize = 12
-	yLabel.Move(fyne.NewPos(10, topPadding+graphHeight/2-30))
+	yLabel.Move(fyne.NewPos(15, topPadding+graphHeight/2-40))
 	r.objects = append(r.objects, yLabel)
 
 	// X-axis label
@@ -182,6 +194,6 @@ func ShowStatisticsWindow(expression string) {
 	// Create and show the window
 	window := fyne.CurrentApp().NewWindow("Statistics: " + expression)
 	window.SetContent(graph)
-	window.Resize(fyne.NewSize(800, 500))
+	window.Resize(fyne.NewSize(900, 550))
 	window.Show()
 }

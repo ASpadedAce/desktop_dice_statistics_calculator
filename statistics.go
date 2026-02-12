@@ -15,6 +15,8 @@ type DiceStatistics struct {
 	Results     map[int]int     // outcome -> count of ways to achieve it
 	Total       int             // total number of possible outcomes
 	Percentages map[int]float64 // outcome -> percentage
+	Average     float64         // average/mean value
+	MostCommon  int             // most common (median) value
 }
 
 // CalculateDiceStatistics calculates the theoretical distribution of possible outcomes for a dice expression
@@ -58,13 +60,18 @@ func CalculateDiceStatistics(expression string) (*DiceStatistics, error) {
 		percentages[value] = (float64(count) / float64(totalCount)) * 100
 	}
 
-	return &DiceStatistics{
+	stats := &DiceStatistics{
 		MinValue:    minVal,
 		MaxValue:    maxVal,
 		Results:     outcomes,
 		Total:       totalCount,
 		Percentages: percentages,
-	}, nil
+	}
+
+	// Calculate average and most common value
+	stats.calculateAverageAndMedian()
+
+	return stats, nil
 }
 
 // Term represents a single term in the expression (dice roll or constant)
@@ -289,4 +296,40 @@ func (s *DiceStatistics) GetMaxPercentage() float64 {
 		}
 	}
 	return maxPercentage
+}
+
+// calculateAverageAndMedian calculates the average and most common value
+func (s *DiceStatistics) calculateAverageAndMedian() {
+	if len(s.Results) == 0 {
+		s.Average = 0
+		s.MostCommon = 0
+		return
+	}
+
+	// Calculate average (mean)
+	sum := 0
+	totalCount := 0
+	for value, count := range s.Results {
+		sum += value * count
+		totalCount += count
+	}
+	s.Average = float64(sum) / float64(totalCount)
+
+	// Find most common (mode) - the value with highest count
+	maxCount := 0
+	for value, count := range s.Results {
+		if count > maxCount {
+			maxCount = count
+			s.MostCommon = value
+		}
+	}
+
+	// If there are tied values, choose the smallest one
+	if maxCount > 0 {
+		for value, count := range s.Results {
+			if count == maxCount && value < s.MostCommon {
+				s.MostCommon = value
+			}
+		}
+	}
 }
