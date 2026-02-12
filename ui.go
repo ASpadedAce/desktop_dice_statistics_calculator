@@ -178,61 +178,51 @@ type customEntry struct {
 }
 
 func (e *customEntry) CreateRenderer() fyne.WidgetRenderer {
-	e.ExtendBaseWidget(e)
+	// Call the parent's CreateRenderer to ensure proper initialization
+	renderer := e.Entry.CreateRenderer()
 
-	text := canvas.NewText(e.Text, color.White)
-	text.TextSize = e.TextSize
-
-	placeholder := canvas.NewText(e.PlaceHolder, theme.PlaceHolderColor())
-	placeholder.TextSize = e.TextSize
-	placeholder.TextStyle = e.TextStyle
-
-	objects := []fyne.CanvasObject{placeholder, text}
-
+	// Wrap the parent renderer to add our custom TextSize
 	return &customEntryRenderer{
-		entry:       e,
-		text:        text,
-		placeholder: placeholder,
-		objects:     objects,
+		entry:          e,
+		parentRenderer: renderer,
 	}
 }
 
 type customEntryRenderer struct {
-	entry       *customEntry
-	text        *canvas.Text
-	placeholder *canvas.Text
-	objects     []fyne.CanvasObject
+	entry          *customEntry
+	parentRenderer fyne.WidgetRenderer
 }
 
 func (r *customEntryRenderer) Layout(size fyne.Size) {
-	r.text.Resize(size)
-	r.placeholder.Resize(size)
+	// Update TextSize on all canvas text objects
+	for _, obj := range r.parentRenderer.Objects() {
+		if text, ok := obj.(*canvas.Text); ok {
+			text.TextSize = r.entry.TextSize
+		}
+	}
+	r.parentRenderer.Layout(size)
 }
 
 func (r *customEntryRenderer) MinSize() fyne.Size {
-	return r.text.MinSize()
+	return r.parentRenderer.MinSize()
 }
 
 func (r *customEntryRenderer) Refresh() {
-	r.text.Text = r.entry.Text
-	r.text.TextSize = r.entry.TextSize
-	r.text.Refresh()
-
-	r.placeholder.Text = r.entry.PlaceHolder
-	r.placeholder.TextSize = r.entry.TextSize
-	if r.entry.Text == "" {
-		r.placeholder.Show()
-	} else {
-		r.placeholder.Hide()
+	// Update TextSize on all canvas text objects
+	for _, obj := range r.parentRenderer.Objects() {
+		if text, ok := obj.(*canvas.Text); ok {
+			text.TextSize = r.entry.TextSize
+		}
 	}
-	r.placeholder.Refresh()
+	r.parentRenderer.Refresh()
 }
 
 func (r *customEntryRenderer) Objects() []fyne.CanvasObject {
-	return r.objects
+	return r.parentRenderer.Objects()
 }
 
 func (r *customEntryRenderer) Destroy() {
+	r.parentRenderer.Destroy()
 }
 
 func newCustomEntry(size float32) *customEntry {

@@ -28,7 +28,9 @@ func main() {
 			return len(calculations)
 		},
 		func() fyne.CanvasObject {
-			return newHistoryItem(&calculation{})
+			return newHistoryItemWithCallback(&calculation{}, func(equation string) {
+				diceInputEntry.SetText(equation)
+			})
 		},
 		func(i widget.ListItemID, o fyne.CanvasObject) {
 			o.(*historyItem).SetCalculation(calculations[i])
@@ -73,7 +75,7 @@ func main() {
 			diceInputEntry.SetText(diceInputEntry.Text + "H")
 		}),
 		newCustomButton2("dX", func() {
-			diceInputEntry.SetText(diceInputEntry.Text + "dX")
+			diceInputEntry.SetText(diceInputEntry.Text + "d")
 		}),
 		newCustomButton2("d4", func() {
 			diceInputEntry.SetText(diceInputEntry.Text + "d4")
@@ -127,7 +129,11 @@ func main() {
 			diceInputEntry.SetText(diceInputEntry.Text + "+")
 		}),
 		newCustomButton2("📊", func() {
-			// TODO: Implement statistics logic
+			diceInput := strings.TrimSpace(diceInputEntry.Text)
+			if diceInput == "" {
+				return
+			}
+			ShowStatisticsWindow(diceInput)
 		}),
 		newCustomButton2(".", func() {
 			diceInputEntry.SetText(diceInputEntry.Text + ".")

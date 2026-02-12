@@ -19,15 +19,21 @@ type historyItemRenderer struct {
 	equationLabel  *customLabel
 	diceRollsLabel *customLabel
 	resultLabel    *customLabel
+	container      fyne.CanvasObject
 	objects        []fyne.CanvasObject
 }
 
 func (r *historyItemRenderer) MinSize() fyne.Size {
-	return r.objects[0].MinSize()
+	minSize := r.container.MinSize()
+	// Ensure a minimum height so items don't overlap
+	if minSize.Height < 90 {
+		minSize = fyne.NewSize(minSize.Width, 90)
+	}
+	return minSize
 }
 
 func (r *historyItemRenderer) Layout(size fyne.Size) {
-	r.objects[0].Resize(size)
+	r.container.Resize(size)
 }
 
 func (r *historyItemRenderer) ApplyTheme() {
@@ -40,6 +46,7 @@ func (r *historyItemRenderer) Refresh() {
 	r.equationLabel.Refresh()
 	r.diceRollsLabel.Refresh()
 	r.resultLabel.Refresh()
+	r.container.Refresh()
 }
 
 func (r *historyItemRenderer) Objects() []fyne.CanvasObject {
@@ -51,7 +58,17 @@ func (r *historyItemRenderer) Destroy() {
 
 type historyItem struct {
 	widget.BaseWidget
-	calc *calculation
+	calc     *calculation
+	onTapped func(equation string)
+}
+
+func (h *historyItem) Tapped(*fyne.PointEvent) {
+	if h.onTapped != nil && h.calc != nil {
+		h.onTapped(h.calc.equation)
+	}
+}
+
+func (h *historyItem) TappedSecondary(*fyne.PointEvent) {
 }
 
 func (h *historyItem) CreateRenderer() fyne.WidgetRenderer {
@@ -75,6 +92,7 @@ func (h *historyItem) CreateRenderer() fyne.WidgetRenderer {
 		equationLabel:  equationLabel,
 		diceRollsLabel: diceRollsLabel,
 		resultLabel:    resultLabel,
+		container:      layout,
 		objects:        []fyne.CanvasObject{layout},
 	}
 }
@@ -86,6 +104,12 @@ func (h *historyItem) SetCalculation(c *calculation) {
 
 func newHistoryItem(c *calculation) *historyItem {
 	item := &historyItem{calc: c}
+	item.ExtendBaseWidget(item)
+	return item
+}
+
+func newHistoryItemWithCallback(c *calculation, onTapped func(equation string)) *historyItem {
+	item := &historyItem{calc: c, onTapped: onTapped}
 	item.ExtendBaseWidget(item)
 	return item
 }
