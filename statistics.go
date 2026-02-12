@@ -85,14 +85,20 @@ type Term struct {
 }
 
 // parseTerms parses a dice expression into terms
+// parseTerms parses a dice expression into terms, handling H/L flexibly
 func parseTerms(expression string) ([]Term, error) {
 	var terms []Term
 
-	// Split by + and -, keeping the operators
+	// Remove spaces
+	expression = strings.TrimSpace(expression)
+
+	// Split by + and - while keeping the operators
 	parts := regexp.MustCompile(`([+\-])`).Split(expression, -1)
 
 	currentOp := "+"
-	dicePattern := regexp.MustCompile(`^(\d*)d(\d+)([HL])?$`)
+	pendingModifier := "" // Store H or L to apply to the next dice roll
+	// Pattern to match: optional H/L prefix, count, d, sides, optional H/L suffix
+	dicePattern := regexp.MustCompile(`^([HL])?(\d*)d(\d+)([HL])?$`)
 
 	for _, part := range parts {
 		part = strings.TrimSpace(part)
@@ -107,19 +113,32 @@ func parseTerms(expression string) ([]Term, error) {
 			continue
 		}
 
+		// Check for standalone H or L modifier
+		if part == "H" || part == "L" {
+			pendingModifier = part
+			continue
+		}
+
 		// Try to match dice notation
 		matches := dicePattern.FindStringSubmatch(part)
+
 		if matches != nil {
+			// Extract components
+			prefixModifier := matches[1] // H or L before the dice
+			countStr := matches[2]
+			sidesStr := matches[3]
+			suffixModifier := matches[4] // H or L after the dice
+
 			count := 1
-			if matches[1] != "" {
-				c, err := strconv.Atoi(matches[1])
+			if countStr != "" {
+				c, err := strconv.Atoi(countStr)
 				if err != nil {
 					return nil, err
 				}
 				count = c
 			}
 
-			sides, err := strconv.Atoi(matches[2])
+			sides, err := strconv.Atoi(sidesStr)
 			if err != nil {
 				return nil, err
 			}
@@ -128,7 +147,15 @@ func parseTerms(expression string) ([]Term, error) {
 				return nil, fmt.Errorf("invalid dice: %dd%d", count, sides)
 			}
 
-			modifier := matches[3]
+			// Determine which modifier to use (priority: suffix > prefix > pending)
+			modifier := ""
+			if suffixModifier != "" {
+				modifier = suffixModifier
+			} else if prefixModifier != "" {
+				modifier = prefixModifier
+			} else if pendingModifier != "" {
+				modifier = pendingModifier
+			}
 
 			terms = append(terms, Term{
 				isDice:   true,
@@ -137,9 +164,15 @@ func parseTerms(expression string) ([]Term, error) {
 				modifier: modifier,
 				op:       currentOp,
 			})
+
 			currentOp = "+"
+			pendingModifier = ""
 		} else {
-			// Try to parse as constant
+			// Try to parse as constant (but reset pending modifier if it was set)
+			if pendingModifier != "" {
+				return nil, fmt.Errorf("modifier %s can only be applied to dice rolls", pendingModifier)
+			}
+
 			val, err := strconv.Atoi(part)
 			if err != nil {
 				return nil, fmt.Errorf("invalid term: %s", part)
@@ -152,6 +185,11 @@ func parseTerms(expression string) ([]Term, error) {
 			})
 			currentOp = "+"
 		}
+	}
+
+	// If we ended with a pending modifier, that's an error
+	if pendingModifier != "" {
+		return nil, fmt.Errorf("modifier %s at end of expression with no dice roll to apply to", pendingModifier)
 	}
 
 	return terms, nil

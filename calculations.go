@@ -44,9 +44,9 @@ func expandDiceNotation(expression string) (string, string, error) {
 	result := expression
 	diceRollsStr := expression
 
-	// Pattern to match dice notation: [count]d[sides][H|L]
-	// Examples: d20, 2d6, 3d6H, 4d8L, dx (where x is placeholder)
-	dicePattern := regexp.MustCompile(`(\d+)?d(\d+|x)([HL])?`)
+	// Pattern to match dice notation: [H|L]?[count]d[sides][H|L]?
+	// Examples: d20, 2d6, 3d6H, 4d8L, h2d20, l3d6, dx (where x is placeholder)
+	dicePattern := regexp.MustCompile(`([HL])?(\d+)?d(\d+|x)([HL])?`)
 
 	// Process all dice matches
 	matches := dicePattern.FindAllStringSubmatchIndex(result, -1)
@@ -58,14 +58,26 @@ func expandDiceNotation(expression string) (string, string, error) {
 		end := match[1]
 
 		// Extract components
-		countStr := ""
+		prefixModifier := ""
 		if match[2] != -1 {
-			countStr = result[match[2]:match[3]]
+			prefixModifier = result[match[2]:match[3]]
 		}
-		sidesStr := result[match[4]:match[5]]
+		countStr := ""
+		if match[4] != -1 {
+			countStr = result[match[4]:match[5]]
+		}
+		sidesStr := result[match[6]:match[7]]
+		suffixModifier := ""
+		if match[8] != -1 {
+			suffixModifier = result[match[8]:match[9]]
+		}
+
+		// Determine which modifier to use (priority: suffix > prefix)
 		modifier := ""
-		if match[6] != -1 {
-			modifier = result[match[6]:match[7]]
+		if suffixModifier != "" {
+			modifier = suffixModifier
+		} else if prefixModifier != "" {
+			modifier = prefixModifier
 		}
 
 		// Determine count (default is 1)
