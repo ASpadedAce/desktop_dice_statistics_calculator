@@ -59,7 +59,6 @@ func main() {
 			}
 			calculations = append([]*calculation{c}, calculations...)
 			historyList.Refresh()
-			diceInputEntry.SetText("")
 		}
 	}
 
@@ -134,6 +133,7 @@ func main() {
 				return
 			}
 			ShowStatisticsWindow(diceInput)
+			roll()
 		}),
 		newCustomButton2(".", func() {
 			diceInputEntry.SetText(diceInputEntry.Text + ".")
