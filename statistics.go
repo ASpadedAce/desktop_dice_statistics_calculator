@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"regexp"
 	"sort"
 	"strconv"
@@ -19,6 +20,16 @@ type DiceStatistics struct {
 	MostCommon  int             // most common (median) value
 }
 
+// Distribution represents the frequency distribution of outcomes
+type Distribution map[int]int
+
+// Regex patterns for parsing
+var (
+	diceTokenPattern = regexp.MustCompile(`^([HL])?(\d*)d(\d+)([HL])?`)
+	// Updated numberTokenPattern to include optional decimal part
+	numberTokenPattern = regexp.MustCompile(`^(\d+(\.\d+)?)`)
+)
+
 // CalculateDiceStatistics calculates the theoretical distribution of possible outcomes for a dice expression
 func CalculateDiceStatistics(expression string) (*DiceStatistics, error) {
 	expression = strings.TrimSpace(expression)
@@ -26,31 +37,40 @@ func CalculateDiceStatistics(expression string) (*DiceStatistics, error) {
 		return nil, fmt.Errorf("empty expression")
 	}
 
-	// Parse the expression to extract terms
-	terms, err := parseTerms(expression)
+	parser := &statParser{expr: expression, pos: 0}
+	outcomes, err := parser.parseExpression()
 	if err != nil {
 		return nil, err
 	}
 
-	// Calculate all possible outcomes and their frequencies
-	outcomes := calculateOutcomeDistribution(terms)
+	parser.skipWhitespace()
+	if parser.pos < len(parser.expr) {
+		return nil, fmt.Errorf("unexpected character at position %d: '%c'", parser.pos, parser.expr[parser.pos])
+	}
 
 	if len(outcomes) == 0 {
 		return nil, fmt.Errorf("no valid outcomes for expression")
 	}
 
 	// Find min and max
-	minVal := -1
-	maxVal := -1
+	minVal := 0
+	maxVal := 0
+	first := true
 	totalCount := 0
 
 	for value, count := range outcomes {
 		totalCount += count
-		if minVal == -1 || value < minVal {
+		if first {
 			minVal = value
-		}
-		if maxVal == -1 || value > maxVal {
 			maxVal = value
+			first = false
+		} else {
+			if value < minVal {
+				minVal = value
+			}
+			if value > maxVal {
+				maxVal = value
+			}
 		}
 	}
 
@@ -74,175 +94,269 @@ func CalculateDiceStatistics(expression string) (*DiceStatistics, error) {
 	return stats, nil
 }
 
-// Term represents a single term in the expression (dice roll or constant)
-type Term struct {
-	isDice   bool
-	count    int    // number of dice
-	sides    int    // sides per die
-	modifier string // "" for sum, "H" for highest, "L" for lowest
-	value    int    // constant value if not dice
-	op       string // operation before this term: "+", "-"
+// statParser implementation
+type statParser struct {
+	expr string
+	pos  int
 }
 
-// parseTerms parses a dice expression into terms
-// parseTerms parses a dice expression into terms, handling H/L flexibly
-func parseTerms(expression string) ([]Term, error) {
-	var terms []Term
+func (p *statParser) skipWhitespace() {
+	for p.pos < len(p.expr) && (p.expr[p.pos] == ' ' || p.expr[p.pos] == '\t') {
+		p.pos++
+	}
+}
 
-	// Remove spaces
-	expression = strings.TrimSpace(expression)
+// parseExpression handles addition and subtraction
+func (p *statParser) parseExpression() (Distribution, error) {
+	left, err := p.parseTerm()
+	if err != nil {
+		return nil, err
+	}
 
-	// Split by + and - while keeping the operators
-	parts := regexp.MustCompile(`([+\-])`).Split(expression, -1)
-
-	currentOp := "+"
-	pendingModifier := "" // Store H or L to apply to the next dice roll
-	// Pattern to match: optional H/L prefix, count, d, sides, optional H/L suffix
-	dicePattern := regexp.MustCompile(`^([HL])?(\d*)d(\d+)([HL])?$`)
-
-	for _, part := range parts {
-		part = strings.TrimSpace(part)
-
-		if part == "" {
-			continue
+	for {
+		p.skipWhitespace()
+		if p.pos >= len(p.expr) {
+			break
 		}
 
-		// Check if this is an operator
-		if part == "+" || part == "-" {
-			currentOp = part
-			continue
-		}
-
-		// Check for standalone H or L modifier
-		if part == "H" || part == "L" {
-			pendingModifier = part
-			continue
-		}
-
-		// Try to match dice notation
-		matches := dicePattern.FindStringSubmatch(part)
-
-		if matches != nil {
-			// Extract components
-			prefixModifier := matches[1] // H or L before the dice
-			countStr := matches[2]
-			sidesStr := matches[3]
-			suffixModifier := matches[4] // H or L after the dice
-
-			count := 1
-			if countStr != "" {
-				c, err := strconv.Atoi(countStr)
-				if err != nil {
-					return nil, err
-				}
-				count = c
-			}
-
-			sides, err := strconv.Atoi(sidesStr)
+		if p.expr[p.pos] == '+' {
+			p.pos++
+			right, err := p.parseTerm()
 			if err != nil {
 				return nil, err
 			}
-
-			if sides <= 0 || count <= 0 {
-				return nil, fmt.Errorf("invalid dice: %dd%d", count, sides)
-			}
-
-			// Determine which modifier to use (priority: suffix > prefix > pending)
-			modifier := ""
-			if suffixModifier != "" {
-				modifier = suffixModifier
-			} else if prefixModifier != "" {
-				modifier = prefixModifier
-			} else if pendingModifier != "" {
-				modifier = pendingModifier
-			}
-
-			terms = append(terms, Term{
-				isDice:   true,
-				count:    count,
-				sides:    sides,
-				modifier: modifier,
-				op:       currentOp,
-			})
-
-			currentOp = "+"
-			pendingModifier = ""
-		} else {
-			// Try to parse as constant (but reset pending modifier if it was set)
-			if pendingModifier != "" {
-				return nil, fmt.Errorf("modifier %s can only be applied to dice rolls", pendingModifier)
-			}
-
-			val, err := strconv.Atoi(part)
+			left = addDist(left, right)
+		} else if p.expr[p.pos] == '-' {
+			p.pos++
+			right, err := p.parseTerm()
 			if err != nil {
-				return nil, fmt.Errorf("invalid term: %s", part)
+				return nil, err
 			}
-
-			terms = append(terms, Term{
-				isDice: false,
-				value:  val,
-				op:     currentOp,
-			})
-			currentOp = "+"
+			left = subDist(left, right)
+		} else {
+			break
 		}
 	}
 
-	// If we ended with a pending modifier, that's an error
-	if pendingModifier != "" {
-		return nil, fmt.Errorf("modifier %s at end of expression with no dice roll to apply to", pendingModifier)
-	}
-
-	return terms, nil
+	return left, nil
 }
 
-// calculateOutcomeDistribution calculates all possible outcomes and their frequencies
-func calculateOutcomeDistribution(terms []Term) map[int]int {
-	// Start with base case: single outcome of 0 with 1 way to achieve it
-	outcomes := map[int]int{0: 1}
-
-	for _, term := range terms {
-		outcomes = applyTerm(outcomes, term)
+// parseTerm handles multiplication, division and implicit multiplication
+func (p *statParser) parseTerm() (Distribution, error) {
+	left, err := p.parsePower()
+	if err != nil {
+		return nil, err
 	}
 
-	return outcomes
-}
-
-// applyTerm applies a term to the current outcomes distribution
-func applyTerm(currentOutcomes map[int]int, term Term) map[int]int {
-	newOutcomes := make(map[int]int)
-
-	if term.isDice {
-		// Get all possible values for this dice roll
-		diceOutcomes := getDiceOutcomes(term.count, term.sides, term.modifier)
-
-		// Combine with current outcomes
-		for currentVal, currentCount := range currentOutcomes {
-			for diceVal, diceCount := range diceOutcomes {
-				var resultVal int
-				if term.op == "-" {
-					resultVal = currentVal - diceVal
-				} else {
-					resultVal = currentVal + diceVal
-				}
-
-				newOutcomes[resultVal] += currentCount * diceCount
-			}
+	for {
+		p.skipWhitespace()
+		if p.pos >= len(p.expr) {
+			break
 		}
-	} else {
-		// Constant value
-		for currentVal, currentCount := range currentOutcomes {
-			var resultVal int
-			if term.op == "-" {
-				resultVal = currentVal - term.value
+
+		c := p.expr[p.pos]
+		if c == '*' {
+			p.pos++
+			right, err := p.parsePower()
+			if err != nil {
+				return nil, err
+			}
+			left = multDist(left, right)
+		} else if c == '/' {
+			p.pos++
+			right, err := p.parsePower()
+			if err != nil {
+				return nil, err
+			}
+			left = divDist(left, right)
+		} else if c == '(' || (c >= '0' && c <= '9') || c == 'd' || c == 'H' || c == 'L' {
+			// Implicit multiplication for things that look like factors
+			right, err := p.parsePower()
+			if err != nil {
+				return nil, err
+			}
+			left = multDist(left, right)
+		} else {
+			break
+		}
+	}
+
+	return left, nil
+}
+
+// parsePower handles exponentiation
+func (p *statParser) parsePower() (Distribution, error) {
+	left, err := p.parseFactor()
+	if err != nil {
+		return nil, err
+	}
+
+	for {
+		p.skipWhitespace()
+		if p.pos >= len(p.expr) {
+			break
+		}
+
+		if p.expr[p.pos] == '^' {
+			p.pos++
+			right, err := p.parseFactor() // Left-associative to match calculator
+			if err != nil {
+				return nil, err
+			}
+			left = powDist(left, right)
+		} else {
+			break
+		}
+	}
+
+	return left, nil
+}
+
+// parseFactor handles parentheses, dice, and numbers
+func (p *statParser) parseFactor() (Distribution, error) {
+	p.skipWhitespace()
+	if p.pos >= len(p.expr) {
+		return nil, fmt.Errorf("unexpected end of expression")
+	}
+
+	// Parentheses
+	if p.expr[p.pos] == '(' {
+		p.pos++
+		dist, err := p.parseExpression()
+		if err != nil {
+			return nil, err
+		}
+		p.skipWhitespace()
+		if p.pos >= len(p.expr) || p.expr[p.pos] != ')' {
+			return nil, fmt.Errorf("missing closing parenthesis")
+		}
+		p.pos++
+		return dist, nil
+	}
+
+	// Try Dice Pattern
+	remaining := p.expr[p.pos:]
+	if loc := diceTokenPattern.FindStringIndex(remaining); loc != nil {
+		token := remaining[loc[0]:loc[1]]
+		p.pos += loc[1]
+		return parseDiceToken(token)
+	}
+
+	// Try Number Pattern
+	if loc := numberTokenPattern.FindStringIndex(remaining); loc != nil {
+		token := remaining[loc[0]:loc[1]]
+		p.pos += loc[1]
+		// Parse as float then cast to int (truncate/floor) to handle buttons like "."
+		valFloat, err := strconv.ParseFloat(token, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid number: %s", token)
+		}
+		return Distribution{int(valFloat): 1}, nil
+	}
+
+	return nil, fmt.Errorf("unexpected character: %c", p.expr[p.pos])
+}
+
+func parseDiceToken(token string) (Distribution, error) {
+	matches := diceTokenPattern.FindStringSubmatch(token)
+
+	if matches != nil {
+		// It is a dice expression
+		prefixModifier := matches[1]
+		countStr := matches[2]
+		sidesStr := matches[3]
+		suffixModifier := matches[4]
+
+		count := 1
+		if countStr != "" {
+			c, err := strconv.Atoi(countStr)
+			if err != nil {
+				return nil, err
+			}
+			count = c
+		}
+
+		sides, err := strconv.Atoi(sidesStr)
+		if err != nil {
+			return nil, err
+		}
+
+		modifier := ""
+		if suffixModifier != "" {
+			modifier = suffixModifier
+		} else if prefixModifier != "" {
+			modifier = prefixModifier
+		}
+
+		return getDiceOutcomes(count, sides, modifier), nil
+	}
+
+	return nil, fmt.Errorf("invalid dice term: %s", token)
+}
+
+// Operations on Distributions
+
+func addDist(a, b Distribution) Distribution {
+	res := make(Distribution)
+	for valA, countA := range a {
+		for valB, countB := range b {
+			res[valA+valB] += countA * countB
+		}
+	}
+	return res
+}
+
+func subDist(a, b Distribution) Distribution {
+	res := make(Distribution)
+	for valA, countA := range a {
+		for valB, countB := range b {
+			res[valA-valB] += countA * countB
+		}
+	}
+	return res
+}
+
+func multDist(a, b Distribution) Distribution {
+	res := make(Distribution)
+	for valA, countA := range a {
+		for valB, countB := range b {
+			res[valA*valB] += countA * countB
+		}
+	}
+	return res
+}
+
+func divDist(a, b Distribution) Distribution {
+	res := make(Distribution)
+	for valA, countA := range a {
+		for valB, countB := range b {
+			if valB == 0 {
+				continue // Division by zero yields no outcome
+			}
+			res[valA/valB] += countA * countB
+		}
+	}
+	return res
+}
+
+func powDist(a, b Distribution) Distribution {
+	res := make(Distribution)
+	for valA, countA := range a {
+		for valB, countB := range b {
+			// Integer exponentiation
+			// Standard behavior for non-negative exponents
+			// Negative exponents with int base result in 0 (unless -1, 1).
+			val := 0
+			if valB >= 0 {
+				val = int(math.Pow(float64(valA), float64(valB)))
 			} else {
-				resultVal = currentVal + term.value
+				// Integer division for 1/(a^-b) usually 0
+				val = int(math.Pow(float64(valA), float64(valB)))
 			}
-
-			newOutcomes[resultVal] += currentCount
+			res[val] += countA * countB
 		}
 	}
-
-	return newOutcomes
+	return res
 }
 
 // getDiceOutcomes returns a map of all possible outcomes for a dice roll and their frequencies
