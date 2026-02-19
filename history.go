@@ -72,7 +72,6 @@ func (h *historyItem) TappedSecondary(*fyne.PointEvent) {
 }
 
 func (h *historyItem) CreateRenderer() fyne.WidgetRenderer {
-	h.ExtendBaseWidget(h)
 	equationLabel := newCustomLabel(h.calc.equation, fyne.CurrentApp().Settings().Theme().Size(theme.SizeNameText)*2, fyne.TextStyle{Bold: true}, fyne.TextAlignLeading, theme.ForegroundColor())
 	diceRollsLabel := newCustomLabel(h.calc.diceRolls, fyne.CurrentApp().Settings().Theme().Size(theme.SizeNameText)*1.5, fyne.TextStyle{Italic: true}, fyne.TextAlignLeading, theme.ForegroundColor())
 	resultLabel := newCustomLabel(h.calc.result, fyne.CurrentApp().Settings().Theme().Size(theme.SizeNameText)*2, fyne.TextStyle{}, fyne.TextAlignTrailing, theme.ForegroundColor())

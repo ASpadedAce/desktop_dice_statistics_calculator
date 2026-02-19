@@ -21,7 +21,6 @@ type customLabel struct {
 }
 
 func (l *customLabel) CreateRenderer() fyne.WidgetRenderer {
-	l.ExtendBaseWidget(l)
 	text := canvas.NewText(l.Text, l.Color)
 	text.TextSize = l.TextSize
 	text.Alignment = l.Alignment
@@ -64,13 +63,15 @@ func (r *customLabelRenderer) Destroy() {
 }
 
 func newCustomLabel(text string, size float32, style fyne.TextStyle, align fyne.TextAlign, textColor color.Color) *customLabel {
-	return &customLabel{
+	l := &customLabel{
 		Text:      text,
 		TextSize:  size,
 		TextStyle: style,
 		Alignment: align,
 		Color:     textColor,
 	}
+	l.ExtendBaseWidget(l)
+	return l
 }
 
 // customButton2 is a custom button widget with theme-aware styling
@@ -82,8 +83,7 @@ type customButton2 struct {
 }
 
 func (b *customButton2) CreateRenderer() fyne.WidgetRenderer {
-	b.ExtendBaseWidget(b)
-	text := canvas.NewText(b.Text, color.White)
+	text := canvas.NewText(b.Text, b.textColor())
 	text.Alignment = fyne.TextAlignCenter
 	background := canvas.NewRectangle(color.Transparent)
 	return &customButton2Renderer{
@@ -135,6 +135,7 @@ func (r *customButton2Renderer) MinSize() fyne.Size {
 
 func (r *customButton2Renderer) Refresh() {
 	r.text.Text = r.button.Text
+	r.text.Color = r.button.textColor()
 	r.text.Refresh()
 	r.background.FillColor = r.button.backgroundColor()
 	r.background.Refresh()
@@ -148,27 +149,42 @@ func (r *customButton2Renderer) Destroy() {
 }
 
 func (b *customButton2) backgroundColor() color.Color {
+	variant := fyne.CurrentApp().Settings().ThemeVariant()
 	switch b.Importance {
 	case widget.HighImportance:
-		return fyne.CurrentApp().Settings().Theme().Color(theme.ColorNamePrimary, theme.VariantDark)
+		return fyne.CurrentApp().Settings().Theme().Color(theme.ColorNamePrimary, variant)
 	default:
-		return fyne.CurrentApp().Settings().Theme().Color(theme.ColorNameButton, theme.VariantDark)
+		return fyne.CurrentApp().Settings().Theme().Color(theme.ColorNameButton, variant)
+	}
+}
+
+func (b *customButton2) textColor() color.Color {
+	variant := fyne.CurrentApp().Settings().ThemeVariant()
+	switch b.Importance {
+	case widget.HighImportance:
+		return fyne.CurrentApp().Settings().Theme().Color(theme.ColorNameBackground, variant)
+	default:
+		return fyne.CurrentApp().Settings().Theme().Color(theme.ColorNameForeground, variant)
 	}
 }
 
 func newCustomButton2(label string, onTap func()) *customButton2 {
-	return &customButton2{
+	b := &customButton2{
 		Text:     label,
 		OnTapped: onTap,
 	}
+	b.ExtendBaseWidget(b)
+	return b
 }
 
 func newCustomButton2WithImportance(label string, importance widget.Importance, onTap func()) *customButton2 {
-	return &customButton2{
+	b := &customButton2{
 		Text:       label,
 		OnTapped:   onTap,
 		Importance: importance,
 	}
+	b.ExtendBaseWidget(b)
+	return b
 }
 
 // customEntry is a custom entry widget with configurable text size
