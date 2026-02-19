@@ -106,7 +106,7 @@ func main() {
 		newCustomButton2("*", func() {
 			diceInputEntry.SetText(diceInputEntry.Text + "*")
 		}),
-		newCustomButton2("⌫", func() {
+		newCustomButton2("BKSP", func() {
 			text := diceInputEntry.Text
 			if len(text) > 0 {
 				diceInputEntry.SetText(text[:len(text)-1])

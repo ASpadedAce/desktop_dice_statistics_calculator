@@ -85,7 +85,7 @@ type customButton2 struct {
 func (b *customButton2) CreateRenderer() fyne.WidgetRenderer {
 	text := canvas.NewText(b.Text, b.textColor())
 	text.Alignment = fyne.TextAlignCenter
-	background := canvas.NewRectangle(color.Transparent)
+	background := canvas.NewRectangle(b.backgroundColor())
 	return &customButton2Renderer{
 		text:       text,
 		background: background,
@@ -162,7 +162,7 @@ func (b *customButton2) textColor() color.Color {
 	variant := fyne.CurrentApp().Settings().ThemeVariant()
 	switch b.Importance {
 	case widget.HighImportance:
-		return fyne.CurrentApp().Settings().Theme().Color(theme.ColorNameBackground, variant)
+		return color.White
 	default:
 		return fyne.CurrentApp().Settings().Theme().Color(theme.ColorNameForeground, variant)
 	}
