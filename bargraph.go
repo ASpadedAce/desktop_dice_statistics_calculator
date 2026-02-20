@@ -150,6 +150,9 @@ func (r *barGraphCanvasRenderer) Refresh() {
 
 	barSpacing := float32(2)
 
+	// Calculate label step to prevent overlapping
+	labelStep := calculateLabelStep(graphWidth, numBars)
+
 	for i, value := range outcomes {
 		percentage := stats.Percentages[value]
 
@@ -166,11 +169,39 @@ func (r *barGraphCanvasRenderer) Refresh() {
 		r.objects = append(r.objects, bar)
 
 		// X-axis label
-		label := canvas.NewText(fmt.Sprintf("%d", value), color.White)
-		label.TextSize = 10
-		label.Move(fyne.NewPos(xPos, topPadding+graphHeight+10))
-		r.objects = append(r.objects, label)
+		// Always show first and last label
+		isFirst := i == 0
+		isLast := i == numBars-1
+
+		// Determine if we should show this intermediate label
+		// We show it if it matches the step, BUT we also need to make sure it doesn't clash with the last label
+		// So if we are very close to the end, don't show it (unless it IS the end)
+		showIntermediate := i%labelStep == 0 && i < numBars-labelStep
+
+		if isFirst || isLast || showIntermediate {
+			label := canvas.NewText(fmt.Sprintf("%d", value), color.White)
+			label.TextSize = 10
+
+			// Center label under bar
+			label.Alignment = fyne.TextAlignCenter
+			label.Move(fyne.NewPos(xPos+barWidth/2-label.MinSize().Width/2, topPadding+graphHeight+10))
+
+			r.objects = append(r.objects, label)
+		}
 	}
+}
+
+func calculateLabelStep(graphWidth float32, numBars int) int {
+	labelWidthEstimate := float32(35) // Estimate width of a label
+	maxLabels := int(graphWidth / labelWidthEstimate)
+	if maxLabels < 1 {
+		maxLabels = 1
+	}
+	labelStep := int(math.Ceil(float64(numBars) / float64(maxLabels)))
+	if labelStep < 1 {
+		labelStep = 1
+	}
+	return labelStep
 }
 
 func (r *barGraphCanvasRenderer) Objects() []fyne.CanvasObject {
