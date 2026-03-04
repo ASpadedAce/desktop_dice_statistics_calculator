@@ -1,5 +1,7 @@
 # Desktop Dice Statistics Calculator
 
+Future Development will be on codeberg: https://codeberg.org/Grimsace/Desktop_Dice_Statistics_Calculator
+
 A native desktop application for calculating dice statistics for tabletop RPGs. Built with Go and the Fyne GUI library to support both Windows and Linux.
 
 ## Features
